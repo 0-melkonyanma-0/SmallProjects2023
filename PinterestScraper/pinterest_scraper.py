@@ -3,11 +3,11 @@ import urllib.request
 from datetime import date
 from os import chdir, path, system
 
+from art import tprint
 from progress.bar import FillingCirclesBar, PixelBar
 from selenium import webdriver
 from selenium.common import exceptions
 from selenium.webdriver.common.by import By
-from art import tprint
 from termcolor import colored
 
 
