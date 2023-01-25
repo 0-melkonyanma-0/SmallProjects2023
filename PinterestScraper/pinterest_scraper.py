@@ -1,8 +1,10 @@
+import csv
 import time
 import urllib.request
 from datetime import date
 from os import chdir, path, system
 
+import urllib3.exceptions
 from art import tprint
 from progress.bar import FillingCirclesBar, PixelBar
 from selenium import webdriver
@@ -18,7 +20,7 @@ class InvalidLinkError(Exception):
         super().__init__(self.message + " " + self.link)
 
 
-def parsImg(link: str):
+def parsImg(link: str) -> None:
     driver = webdriver.Chrome()
     driver.get(link)
     system('clear')
@@ -73,7 +75,7 @@ def parsImg(link: str):
 
             img_links = list(set(img_links))
 
-            with open('pin_links.txt', 'w') as f:
+            with open('.pin_links.txt', 'w') as f:
                 for i in img_links:
                     f.write(i+'\n')
 
@@ -84,58 +86,52 @@ def parsImg(link: str):
     driver.close()
 
 
-def downloadImg():
+def downloadImg(folder_name: str) -> None:
     driver = webdriver.Chrome()
-    print(
-        colored(f'All data will be saved in folder: {date.today()}\n', 'green')
-    )
 
-    if not path.exists(f'{date.today()}'):
-        system(f'mkdir {date.today()}')
-
-    with open('pin_links.txt', 'r') as f:
+    with open('.pin_links.txt', 'r') as f:
 
         pin_links = f.readlines()
-        system('rm pin_links.txt')
+        system('rm .pin_links.txt')
 
-        with PixelBar(colored('Downloading ', 'blue'), max=len(pin_links)) as bar:
-            chdir(f'{date.today()}')
+        system(f'mkdir {folder_name}')
+        chdir(f'{folder_name}')
 
-            for i in pin_links:
-                bar.next()
-                driver.get(i.strip())
+        for i in pin_links:
 
-                with open('meta_data.txt', 'w') as fs:
-                    fs.write(driver.page_source)
+            driver.get(i.strip())
 
-                with open('meta_data.txt', 'r') as fs:
-                    for j in fs.readlines():
-                        if 'as="image"><!-- --><title>' in j:
-                            driver.get(j.split('nonce="" ')[
-                                1].split(' ')[0].split('"')[1])
-                            img = driver.find_element(
-                                By.XPATH, '//html/body/img').get_attribute('src')
-                            system('clear')
-                            print(
-                                colored('\nStart downloading : ' +
-                                        img.split(" /")[-1], 'yellow')
-                            )
-                            urllib.request.urlretrieve(
-                                img, img.split('/')[-1])
+            with open('meta_data.txt', 'w') as fs:
+                fs.write(driver.page_source)
 
-                            print(
-                                colored('Done downloading :  ' +
-                                        img.split(" /")[-1]+'\n', 'green')
-                            )
+            with open('meta_data.txt', 'r') as fs:
+                for j in fs.readlines():
+                    if 'as="image"><!-- --><title>' in j:
+                        driver.get(j.split('nonce="" ')[
+                            1].split(' ')[0].split('"')[1])
+                        img = driver.find_element(
+                            By.XPATH, '//html/body/img').get_attribute('src')
+                        system('clear')
+                        print(
+                            colored('\nStart downloading : ' +
+                                    img.split(" /")[-1], 'yellow')
+                        )
+                        urllib.request.urlretrieve(
+                            img, img.split('/')[-1])
 
-                            break
-                system('rm meta_data.txt')
+                        print(
+                            colored('Done downloading :  ' +
+                                    img.split(" /")[-1]+'\n', 'green')
+                        )
+
+                        break
+        system('rm meta_data.txt')
+        chdir('..')
         print(colored('All file downloaded.', 'green'))
+    driver.close()
 
-        driver.close()
 
-
-def runApp(link: str) -> None:
+def runApp(link: str, folder_name: str) -> None:
     try:
         if not "pinterest.com" in link:
             raise InvalidLinkError(link)
@@ -144,7 +140,7 @@ def runApp(link: str) -> None:
         parsImg(link=link)
 
         # Download imgs
-        downloadImg()
+        downloadImg(folder_name=folder_name)
 
     except InvalidLinkError:
         system("clear")
@@ -153,24 +149,59 @@ def runApp(link: str) -> None:
         )
     except exceptions.NoSuchWindowException:
         system("clear")
-        print(colored("\nWindow of browser closed.\nTry to restrat program.\n", "red"))
+        print(
+            colored("\nWindow of browser closed.\nTry to restrat program.\n", "red")
+        )
     except exceptions.WebDriverException:
         system("clear")
-        print(colored("\nCheck your internet connection.\n", "red"))
+        print(
+            colored("\nCheck your internet connection.\n", "red")
+        )
     except KeyboardInterrupt:
         system("clear")
-        print(colored("\nYou close program by 'Ctrl + C'\n", "red"))
+        print(
+            colored("\nYou close program by 'Ctrl + C'\n", "red")
+        )
+    except urllib3.exceptions.ProtocolError:
+        system("clear")
+        print(
+            colored("\nConnection aborted.\n", "red")
+        )
 
 
-if __name__ == "__main__":
+def main() -> None:
     try:
         system("clear")
         tprint("\t\tPinterest board\n\t\tscraper",
                font='small', chr_ignore=True)
-        link = input(
-            colored("Input board link here : ", "blue")
-        )
-        runApp(link=link)
+
+        with open('boards.csv', 'r', newline='') as csvfile:
+
+            print(
+                colored(
+                    f'All data will be saved in folder: {date.today()}\n', 'green')
+            )
+
+            if not path.exists(f'./{date.today()}'):
+                system(f'mkdir {date.today()}')
+            chdir(f'{date.today()}')
+
+            for row in csv.reader(csvfile, delimiter=' ', quotechar='|'):
+                folder_name = row[0].split('/')[-2]
+                time.sleep(1.5)
+                system("clear")
+                print(f"Link of board : {row[0]}")
+                runApp(link=row[0], folder_name=folder_name)
 
     except KeyboardInterrupt:
-        print(colored("\nYou close program by 'Ctrl + C'\n", "red"))
+        print(
+            colored("\nYou close program by 'Ctrl + C'\n", "red")
+        )
+    except FileNotFoundError:
+        print(
+            colored("\nboards.csv file not found or does not exist.\n", "red")
+        )
+
+
+if __name__ == "__main__":
+    main()
