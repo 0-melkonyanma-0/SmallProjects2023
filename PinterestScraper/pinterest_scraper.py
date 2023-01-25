@@ -38,8 +38,8 @@ def parsImg(link: str) -> None:
             )
 
             if current == last and i % (3 or 4) == 0 and i != 0:
-
                 break
+
             bar.next()
             time.sleep(1.5)
             last = current
