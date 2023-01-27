@@ -29,7 +29,13 @@ def donwload_audio_YT(link: str) -> None:
 
         return None
 
-    print(colored(f"\n\n{YT(link).title}\n", "blue"))
+    print(
+        colored
+        (
+            f"\n\n{YT(link).title}\n", 
+            "blue"
+            )
+    )
     YT(link).streams.get_by_itag("251").download()
 
 
@@ -67,7 +73,12 @@ def download_video_YT(link: str,quality:int) -> None:
 
         for link in playlist.video_urls:
             title = str(YT(link).title)
-            print(colored(f"\n\n{title}\n", "blue"))
+            print(
+                colored(
+                    f"\n\n{title}\n", 
+                    "blue"
+                    )
+            )
             
             if quality == 2:
                 YT(link).streams.get_highest_resolution().download()
@@ -78,7 +89,12 @@ def download_video_YT(link: str,quality:int) -> None:
         return None
 
     title = str(YT(link).title).replace(':','').replace('/','').replace("\\","")
-    print(colored(f"\n\n{title}\n", "blue"))
+    print(
+        colored(
+            f"\n\n{title}\n", 
+            "blue"
+            )
+        )
 
     if quality == 1:
         download_combine(link=link,title=title)
@@ -125,20 +141,34 @@ def main():
                     system("mkdir Video")
                 chdir(path.join("Video"))
 
-                print(colored("\n\tDonwloading start.\n", "green"))
+                print(
+                    colored(
+                        "\n\tDonwloading start.\n", 
+                        "green"
+                        )
+                    )
 
                 for i in tqdm(range(len(links))):
                     try:
                         download_video_YT(link=links[i],quality=quality)    
                     except pytube.exceptions.RegexMatchError:
                         print(
-                            (colored(
-                                f"\n\n\tLink - {links[i]} is invalid\n", 'red'))
+                            (
+                                colored(
+                                f"\n\n\tLink - {links[i]} is invalid\n", 
+                                "red"
+                                )
+                            )
                         )
 
                         continue
                       
-                print(colored("\n\tDonwloading complete.\n", "green"))
+                print(
+                    colored(
+                        "\n\tDonwloading complete.\n", 
+                        "green"
+                        )
+                )
 
             case 2:
 
