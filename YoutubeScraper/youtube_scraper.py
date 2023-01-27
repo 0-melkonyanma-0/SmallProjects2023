@@ -6,16 +6,47 @@ import moviepy.editor as mp
 import pytube.exceptions
 from art import tprint
 from pytube import YouTube as YT
+from pytube import Playlist
 from termcolor import colored
 from tqdm import tqdm
 
 
 def donwload_audio_YT(link: str) -> None:
+
+    if "playlist" in link:
+
+        playlist = Playlist(link)
+
+        if not path.exists(f"./{str(playlist.title)}"):
+            system(f"mkdir '{str(playlist.title).replace('/','-')}'")
+        chdir(str(playlist.title).replace('/', '-'))
+
+        for link in playlist.video_urls:
+            print(colored(f"\n\n{YT(link).title}\n", "blue"))
+            YT(link).streams.get_highest_resolution().download()
+
+        return None
+
     print(colored(f"\n\n{YT(link).title}\n", "blue"))
     YT(link).streams.get_by_itag("251").download()
 
 
 def download_video_YT(link: str) -> None:
+
+    if "playlist" in link:
+
+        playlist = Playlist(link)
+
+        if not path.exists(f"./{str(playlist.title)}"):
+            system(f"mkdir '{str(playlist.title).replace('/','-')}'")
+        chdir(str(playlist.title).replace('/', '-'))
+
+        for link in playlist.video_urls:
+            print(colored(f"\n\n{YT(link).title}\n", "blue"))
+            YT(link).streams.get_highest_resolution().download()
+
+        return None
+
     print(colored(f"\n\n{YT(link).title}\n", "blue"))
     YT(link).streams.get_highest_resolution().download()
 
