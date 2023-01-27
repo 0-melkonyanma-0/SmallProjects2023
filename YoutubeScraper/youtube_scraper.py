@@ -1,11 +1,14 @@
 import csv
+import shutil
 from datetime import date
-from os import chdir, path, system
+from os import (chdir, getcwd, listdir, mkdir, path, remove, rename, rmdir,
+                system)
 
+import moviepy.editor as mp
 import pytube.exceptions
 from art import tprint
-from pytube import YouTube as YT
 from pytube import Playlist
+from pytube import YouTube as YT
 from termcolor import colored
 from tqdm import tqdm
 
@@ -17,8 +20,8 @@ def donwload_audio_YT(link: str) -> None:
         playlist = Playlist(link)
 
         if not path.exists(f"./{str(playlist.title)}"):
-            system(f"mkdir '{str(playlist.title).replace('/','-')}'")
-        chdir(str(playlist.title).replace('/', '-'))
+            system(f'mkdir "{str(playlist.title).replace("/","-")}"')
+        chdir(path.join(str(playlist.title).replace('/', '-')))
 
         for link in playlist.video_urls:
             print(colored(f"\n\n{YT(link).title}\n", "blue"))
@@ -30,25 +33,60 @@ def donwload_audio_YT(link: str) -> None:
     YT(link).streams.get_by_itag("251").download()
 
 
-def download_video_YT(link: str) -> None:
+def download_combine(link:str,title:str)-> None:
+    main_path = getcwd()
+
+    if not path.exists("temp"):
+        mkdir("temp")
+    chdir("temp")
+    
+    YT(link).streams.filter(mime_type='audio/mp4').first().download()
+    rename(listdir()[0],"1.mp4")
+
+    YT(link).streams.filter(mime_type='video/mp4').order_by('resolution').desc().first().download()
+    rename(listdir()[1],"2.mp4")
+    mp.VideoFileClip("2.mp4").write_videofile(f'{title}.mp4',audio="1.mp4")
+    
+    remove("1.mp4")
+    remove("2.mp4")
+    shutil.move(listdir()[0],main_path)
+    chdir("..")
+    rmdir("temp")
+
+    return None
+
+def download_video_YT(link: str,quality:int) -> None:
 
     if "playlist" in link:
 
         playlist = Playlist(link)
 
         if not path.exists(f"./{str(playlist.title)}"):
-            system(f"mkdir '{str(playlist.title).replace('/','-')}'")
-        chdir(str(playlist.title).replace('/', '-'))
+            system(f'mkdir "{str(playlist.title).replace("/","-")}"')
+        chdir(path.join(str(playlist.title).replace('/', '-')))
 
         for link in playlist.video_urls:
-            print(colored(f"\n\n{YT(link).title}\n", "blue"))
-            YT(link).streams.get_highest_resolution().download()
+            title = str(YT(link).title)
+            print(colored(f"\n\n{title}\n", "blue"))
+            
+            if quality == 2:
+                YT(link).streams.get_highest_resolution().download()
+                continue
+
+            download_combine(link=link,title=title)
 
         return None
 
-    print(colored(f"\n\n{YT(link).title}\n", "blue"))
-    YT(link).streams.get_highest_resolution().download()
+    title = str(YT(link).title).replace(':','').replace('/','').replace("\\","")
+    print(colored(f"\n\n{title}\n", "blue"))
 
+    if quality == 1:
+        download_combine(link=link,title=title)
+    if quality == 2:
+        YT(link).streams.get_highest_resolution().download()
+    
+    return None
+    
 
 def main():
     try:
@@ -58,29 +96,40 @@ def main():
         links = list()
 
         menu = int(input(
-            "Choose which type of content you downloading.\n 1.Educational \n 2.Entertainment\n>> "
+            "Select the type of file you would like to download on your PC.\n 1.Video \n 2.Audio\n>> "
         ))
+
+        quality = 1
+
+        if menu == 1:
+            try:
+                quality = int(input(
+                    "\t\t Quality of video.\n\n 1.High.\n 2.Normal.\n>>"
+                ))
+            except ValueError:
+                print("All videos will be downloaded in high quality.")
+
+        
+        with open("yt_links.csv") as csvfile:
+            for row in csv.reader(csvfile, delimiter=' ', quotechar='|'):
+                        links.append(row[0])
 
         match menu:
             case 1:
 
-                with open("_yt_educational.csv") as csvfile:
-                    for row in csv.reader(csvfile, delimiter=' ', quotechar='|'):
-                        links.append(row[0])
-
                 if not path.exists(f"./{date.today()}"):
                     system(f"mkdir {date.today()}")
-                chdir(f"{date.today()}")
+                chdir(path.join(f"{date.today()}"))
 
-                if not path.exists("./Educational"):
-                    system("mkdir Educational")
-                chdir("Educational")
+                if not path.exists("./Video"):
+                    system("mkdir Video")
+                chdir(path.join("Video"))
 
                 print(colored("\n\tDonwloading start.\n", "green"))
 
                 for i in tqdm(range(len(links))):
                     try:
-                        download_video_YT(link=links[i])
+                        download_video_YT(link=links[i],quality=quality)    
                     except pytube.exceptions.RegexMatchError:
                         print(
                             (colored(
@@ -88,22 +137,18 @@ def main():
                         )
 
                         continue
-
+                      
                 print(colored("\n\tDonwloading complete.\n", "green"))
 
             case 2:
 
-                with open("_yt_entertainment.csv") as csvfile:
-                    for row in csv.reader(csvfile, delimiter=' ', quotechar='|'):
-                        links.append(row[0])
-
                 if not path.exists(f"./{date.today()}"):
                     system(f"mkdir {date.today()}")
-                chdir(f"{date.today()}")
+                chdir(path.join(f"{date.today()}"))
 
-                if not path.exists("./Entertainment"):
-                    system("mkdir Entertainment")
-                chdir("Entertainment")
+                if not path.exists("./Audio"):
+                    system("mkdir Audio")
+                chdir(path.join("Audio"))
 
                 print(colored("\n\tDonwloading start.\n", "green"))
 
