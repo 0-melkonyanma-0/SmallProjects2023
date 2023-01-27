@@ -2,7 +2,6 @@ import csv
 from datetime import date
 from os import chdir, path, system
 
-import moviepy.editor as mp
 import pytube.exceptions
 from art import tprint
 from pytube import YouTube as YT
