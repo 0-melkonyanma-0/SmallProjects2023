@@ -1,5 +1,6 @@
 import csv
 import shutil
+from multiprocessing import Pool
 from datetime import date
 from os import (chdir, getcwd, listdir, mkdir, path, remove, rename, rmdir,
                 system)
@@ -39,12 +40,21 @@ def donwload_audio_YT(link: str) -> None:
     YT(link).streams.get_by_itag("251").download()
 
 
-def download_combine(link: str, title: str) -> None:
+def download_combine(link: str) -> None:
+    title = str(YT(link).title).replace(
+        ':', '').replace('/', '').replace("\\", "")
+    print(
+        colored(
+            f"\n\n{title}\n",
+            "blue"
+        )
+    )
+
     main_path = getcwd()
 
-    if not path.exists("temp"):
-        mkdir("temp")
-    chdir("temp")
+    if not path.exists(f"temp_{title}"):
+        mkdir(f"temp_{title}")
+    chdir(f"temp_{title}")
 
     YT(link).streams.filter(mime_type='audio/mp4').first().download()
     rename(listdir()[0], "1.mp4")
@@ -58,7 +68,7 @@ def download_combine(link: str, title: str) -> None:
     remove("2.mp4")
     shutil.move(listdir()[0], main_path)
     chdir("..")
-    rmdir("temp")
+    rmdir(f"temp_{title}")
 
     return None
 
@@ -73,20 +83,21 @@ def download_video_YT(link: str, quality: int) -> None:
             system(f'mkdir "{str(playlist.title).replace("/","-")}"')
         chdir(path.join(str(playlist.title).replace('/', '-')))
 
-        for link in playlist.video_urls:
-            title = str(YT(link).title)
-            print(
-                colored(
-                    f"\n\n{title}\n",
-                    "blue"
+        if quality == 1:
+            with Pool(5) as p:
+                p.map(download_combine, playlist.video_urls)
+        else:
+            for link in playlist.video_urls:
+                title = str(YT(link).title).replace(
+                    ':', '').replace('/', '').replace("\\", "")
+                print(
+                    colored(
+                        f"\n\n{title}\n",
+                        "blue"
+                    )
                 )
-            )
-
-            if quality == 2:
                 YT(link).streams.get_highest_resolution().download()
                 continue
-
-            download_combine(link=link, title=title)
 
         return None
 
@@ -123,7 +134,7 @@ def main():
         if menu == 1:
             try:
                 quality = int(input(
-                    "\t\t Quality of video.\n\n 1.High.\n 2.Normal.\n>>"
+                    "\t\t Quality of video.\n\n 1.High.\n 2.Normal.\n>> "
                 ))
             except ValueError:
                 print("All videos will be downloaded in high quality.")
