@@ -2,11 +2,14 @@ import csv
 import time
 import urllib.request
 from datetime import date
-from os import chdir, path, system
+from multiprocessing import Pool
+from os import chdir, listdir, path, system
 
+import urllib3
 import urllib3.exceptions
 from art import tprint
-from progress.bar import FillingCirclesBar, PixelBar
+from bs4 import BeautifulSoup
+from progress.bar import FillingCirclesBar
 from selenium import webdriver
 from selenium.common import exceptions
 from selenium.webdriver.common.by import By
@@ -21,7 +24,9 @@ class InvalidLinkError(Exception):
 
 
 def parsImg(link: str) -> None:
-    driver = webdriver.Chrome()
+    options = webdriver.ChromeOptions()
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
     driver.get(link)
     system('clear')
     print(
@@ -86,49 +91,53 @@ def parsImg(link: str) -> None:
     driver.close()
 
 
-def downloadImg(folder_name: str) -> None:
-    driver = webdriver.Chrome()
+def async_downloadIMGs(link: str) -> None:
+
+    page = urllib3.PoolManager().request('GET', link)
+    soup = BeautifulSoup(page.data, 'lxml')
+    img = soup.find_all('img')
+
+    print(
+        colored(
+            '\nStart downloading : ' + link.split(" /")[-1]+'\n',
+            'yellow'
+        )
+    )
+
+    link = str(img[0]).split('src="')[-1].split('"/>')[0]
+    urllib.request.urlretrieve(link, link.split('/')[-1])
+
+    print(
+        colored(
+            '\nDone downloading :  ' + link.split(" /")[-1]+'\n',
+            'green'
+        )
+    )
+
+
+def runDownloadIMGs(folder_name: str) -> None:
 
     with open('.pin_links.txt', 'r') as f:
-
-        pin_links = f.readlines()
+        pin_links = [link.strip() for link in f.readlines()]
         system('rm .pin_links.txt')
 
+    if not path.exists(folder_name):
         system(f'mkdir {folder_name}')
-        chdir(f'{folder_name}')
+    chdir(f'{folder_name}')
 
-        for i in pin_links:
+    amount_links = len(pin_links)
 
-            driver.get(i.strip())
-
-            with open('meta_data.txt', 'w') as fs:
-                fs.write(driver.page_source)
-
-            with open('meta_data.txt', 'r') as fs:
-                for j in fs.readlines():
-                    if 'as="image"><!-- --><title>' in j:
-                        driver.get(j.split('nonce="" ')[
-                            1].split(' ')[0].split('"')[1])
-                        img = driver.find_element(
-                            By.XPATH, '//html/body/img').get_attribute('src')
-                        system('clear')
-                        print(
-                            colored('\nStart downloading : ' +
-                                    img.split(" /")[-1], 'yellow')
-                        )
-                        urllib.request.urlretrieve(
-                            img, img.split('/')[-1])
-
-                        print(
-                            colored('Done downloading :  ' +
-                                    img.split(" /")[-1]+'\n', 'green')
-                        )
-
-                        break
-        system('rm meta_data.txt')
-        chdir('..')
-        print(colored('All file downloaded.', 'green'))
-    driver.close()
+    try:
+        Pool(5).map(async_downloadIMGs, pin_links)
+    except Exception as er:
+        print(
+            colored(
+                f'\n{er}\n',
+                'red'
+            )
+        )
+    print(colored(f'Lost item {amount_links-len(listdir())}', 'red'))
+    print(colored('All file downloaded.', 'green'))
 
 
 def runApp(link: str, folder_name: str) -> None:
@@ -140,7 +149,7 @@ def runApp(link: str, folder_name: str) -> None:
         parsImg(link=link)
 
         # Download imgs
-        downloadImg(folder_name=folder_name)
+        runDownloadIMGs(folder_name=folder_name)
 
     except InvalidLinkError:
         system("clear")
