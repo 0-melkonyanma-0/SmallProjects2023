@@ -32,36 +32,38 @@ def donwload_audio_YT(link: str) -> None:
     print(
         colored
         (
-            f"\n\n{YT(link).title}\n", 
+            f"\n\n{YT(link).title}\n",
             "blue"
-            )
+        )
     )
     YT(link).streams.get_by_itag("251").download()
 
 
-def download_combine(link:str,title:str)-> None:
+def download_combine(link: str, title: str) -> None:
     main_path = getcwd()
 
     if not path.exists("temp"):
         mkdir("temp")
     chdir("temp")
-    
-    YT(link).streams.filter(mime_type='audio/mp4').first().download()
-    rename(listdir()[0],"1.mp4")
 
-    YT(link).streams.filter(mime_type='video/mp4').order_by('resolution').desc().first().download()
-    rename(listdir()[1],"2.mp4")
-    mp.VideoFileClip("2.mp4").write_videofile(f'{title}.mp4',audio="1.mp4")
-    
+    YT(link).streams.filter(mime_type='audio/mp4').first().download()
+    rename(listdir()[0], "1.mp4")
+
+    YT(link).streams.filter(
+        mime_type='video/mp4').order_by('resolution').desc().first().download()
+    rename(listdir()[1], "2.mp4")
+    mp.VideoFileClip("2.mp4").write_videofile(f'{title}.mp4', audio="1.mp4")
+
     remove("1.mp4")
     remove("2.mp4")
-    shutil.move(listdir()[0],main_path)
+    shutil.move(listdir()[0], main_path)
     chdir("..")
     rmdir("temp")
 
     return None
 
-def download_video_YT(link: str,quality:int) -> None:
+
+def download_video_YT(link: str, quality: int) -> None:
 
     if "playlist" in link:
 
@@ -75,34 +77,35 @@ def download_video_YT(link: str,quality:int) -> None:
             title = str(YT(link).title)
             print(
                 colored(
-                    f"\n\n{title}\n", 
+                    f"\n\n{title}\n",
                     "blue"
-                    )
+                )
             )
-            
+
             if quality == 2:
                 YT(link).streams.get_highest_resolution().download()
                 continue
 
-            download_combine(link=link,title=title)
+            download_combine(link=link, title=title)
 
         return None
 
-    title = str(YT(link).title).replace(':','').replace('/','').replace("\\","")
+    title = str(YT(link).title).replace(
+        ':', '').replace('/', '').replace("\\", "")
     print(
         colored(
-            f"\n\n{title}\n", 
+            f"\n\n{title}\n",
             "blue"
-            )
         )
+    )
 
     if quality == 1:
-        download_combine(link=link,title=title)
+        download_combine(link=link, title=title)
     if quality == 2:
         YT(link).streams.get_highest_resolution().download()
-    
+
     return None
-    
+
 
 def main():
     try:
@@ -125,10 +128,9 @@ def main():
             except ValueError:
                 print("All videos will be downloaded in high quality.")
 
-        
         with open("yt_links.csv") as csvfile:
             for row in csv.reader(csvfile, delimiter=' ', quotechar='|'):
-                        links.append(row[0])
+                links.append(row[0])
 
         match menu:
             case 1:
@@ -143,31 +145,31 @@ def main():
 
                 print(
                     colored(
-                        "\n\tDonwloading start.\n", 
+                        "\n\tDonwloading start.\n",
                         "green"
-                        )
                     )
+                )
 
                 for i in tqdm(range(len(links))):
                     try:
-                        download_video_YT(link=links[i],quality=quality)    
+                        download_video_YT(link=links[i], quality=quality)
                     except pytube.exceptions.RegexMatchError:
                         print(
                             (
                                 colored(
-                                f"\n\n\tLink - {links[i]} is invalid\n", 
-                                "red"
+                                    f"\n\n\tLink - {links[i]} is invalid\n",
+                                    "red"
                                 )
                             )
                         )
 
                         continue
-                      
+
                 print(
                     colored(
-                        "\n\tDonwloading complete.\n", 
+                        "\n\tDonwloading complete.\n",
                         "green"
-                        )
+                    )
                 )
 
             case 2:
